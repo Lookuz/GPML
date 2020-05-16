@@ -61,5 +61,10 @@ def gp_regression_fast(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
     # cov_new = k_star2 - k_star.T.dot(v)
     cov_new = k_star2 - v.T.dot(v)
 
-    return mu_new, cov_new
+    # Log-likelihood
+    n = len(X)
+    log_sum = np.sum(np.log(np.diagonal(L)))
+    log_likelihood = -0.5 * y.T.dot(alpha) - log_sum - 0.5*(n * np.log(2 * np.pi))
+
+    return mu_new, cov_new, log_likelihood
 
