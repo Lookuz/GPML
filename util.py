@@ -6,6 +6,8 @@ import numpy as np
     Parameters:
         X1: Array of m points (m x d).
         X2: Array of n points (n x d).
+        l: Length scale parameter
+        d: Signal variance
 
     Returns:
         Covariance matrix (m x n).
@@ -16,4 +18,4 @@ def rbf_kernel(X1, X2, d=1.0, l=1.0):
     X2_norm = np.sum(X2**2, axis=1)
     squared_norm = X1_norm.reshape(-1, 1) + X2_norm - 2 * np.dot(X1, X2.T)
 
-    return d * np.exp(-(0.5/(l**2)) * squared_norm)
+    return d**2 * np.exp(-(0.5/(l**2)) * squared_norm)

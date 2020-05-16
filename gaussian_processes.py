@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import inv
+from scipy.linalg import cholesky, cho_solve
 from util import rbf_kernel
 
 kernels = {
@@ -35,3 +36,30 @@ def gp_regression(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
     cov_new = K_newnew - (K_ynew.T).dot(K_y_inv).dot(K_ynew)
 
     return mu_new, cov_new
+
+'''
+    Faster version of gp_regression. Uses cholesky decomposition instead of direction inversion
+    Requires that the inverting matrix is positive definite
+'''
+def gp_regression_fast(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
+    k = kernels[kernel]
+
+    # Mean prediction vector
+    K = k(X, X, d, l) + sigma_y**2 * np.eye(len(X))
+    # L = cholesky(K, lower=True) # Lower triangular
+    # alpha = cho_solve((L, True), y)
+
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y))
+    k_star = k(X, X_new, d, l)
+    mu_new = k_star.T.dot(alpha)
+
+    # Covariance matrix
+    # v = cho_solve((L, True), k_star)
+    v = np.linalg.solve(L, k_star)
+    k_star2 = k(X_new, X_new, d, l)
+    # cov_new = k_star2 - k_star.T.dot(v)
+    cov_new = k_star2 - v.T.dot(v)
+
+    return mu_new, cov_new
+
