@@ -1,8 +1,46 @@
 import numpy as np
+import likelihood_classes
+from util import dtrtrs
 
-def laplace_approximation_binary():
-    pass
+"""
+    Laplace Approximation inference for determining the classification probabilities on new inputs
+    Given the mode and variance of the posterior distribution on latent functions f on observations
 
+    Parameters:
+        X: Observed input points
+        X_new: New unobserved points to be evaluated at
+        y: Labels of the observed inputs X
+        likelihood: Likelihood class of labels y given f p(y|f). For choice of likelihood/probability 
+            distribution functions, look at sigmoid.py
+        kernel: Kernel function to be used
+"""
+def laplace_approximation_binary(X_new, X, y, likelihood, kernel, tol=1e-4, max_iter=30, l=1.0, d=1.0):
+    # Covariance matrix of observations K
+    K = kernel(X, X, d, l)
+
+    # Mode finding to get mean vector of posterior q(f|X, y)
+    f_hat, log_ll = laplace_mode_finding(K, y, likelihood, tol=tol, max_iter=max_iter)
+
+    W = np.diagflat(-(likelihood.d2_log_likelihood(f_hat, y)))
+    W_12 = np.sqrt(W)
+    B = np.eye(len(K)) + W_12.dot(K).dot(W_12)
+    L = np.linalg.cholesky(B)
+
+    # Mean vector
+    k_star = kernel(X, X_new, d, l)
+    d_log_likelihood = likelihood.d_log_likelihood(f_hat, y)
+    f_bar = k_star.T.dot(d_log_likelihood)
+
+    # Covariance matrix
+    v = np.linalg.solve(L, W_12.dot(k_star))
+    k_star2 = kernel(X_new, X_new)
+    cov = k_star2 - v.T.dot(v)
+
+    # Additional parameters for computing predictions 
+    LiW_12, _ = dtrtrs(L, np.diagflat(W_12), lower=1, trans=0)
+    woodbury_inv = LiW_12.T.dot(LiW_12)
+
+    return f_bar, cov
 
 """
     Mode finding algorithm for binary Laplace GPC.
@@ -34,7 +72,7 @@ def laplace_mode_finding(K, y, likelihood, tol=1e-4, max_iter=30):
         f = K.dot(a)
 
         new_obj = laplace_mode_objective(a, f, y, likelihood, tol=tol)
-        print("Iteration {0}: Marginal Likelihood = {1}".format(iteration, new_obj))
+        
         if new_obj < old_obj:
             raise ValueError("Optimization failed. Decrease in objective value from {0} to {1}".format(old_obj, new_obj))
         else:
