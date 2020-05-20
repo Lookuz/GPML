@@ -36,10 +36,6 @@ def laplace_approximation_binary(X_new, X, y, likelihood, kernel, tol=1e-4, max_
     k_star2 = kernel(X_new, X_new)
     cov = k_star2 - v.T.dot(v)
 
-    # Additional parameters for computing predictions 
-    LiW_12, _ = dtrtrs(L, np.diagflat(W_12), lower=1, trans=0)
-    woodbury_inv = LiW_12.T.dot(LiW_12)
-
     return f_bar, cov
 
 """

@@ -2,9 +2,21 @@ import numpy as np
 from numpy.linalg import inv
 from scipy.linalg import cholesky, cho_solve
 from util import rbf_kernel
+import likelihood_classes
+import laplace
 
 kernels = {
     'rbf' : rbf_kernel
+}
+
+# Likelihood functions used in modelling p(f|y) in GPC
+likelihoods = {
+    'probit' : likelihood_classes.Probit
+}
+
+# Inference/Approximation methods used in GPC
+inferences = {
+    'laplace' : laplace.laplace_approximation_binary
 }
 
 '''
@@ -15,6 +27,7 @@ kernels = {
     Args:
         X: Training inputs (m x d).
         Y: Training target output (m x 1).
+        X_new: New inputs to be evaluated at
         l: Length scale parameter.
         d: Kernel vertical variation parameter.
         sigma_y: Noise parameter.
@@ -68,3 +81,35 @@ def gp_regression_fast(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
 
     return mu_new, cov_new, log_likelihood
 
+"""
+    Computes the posterior distribution of the latent function f given the observations
+    (X, y) as well as the posterior on the latent functions f given the same observations
+    and computes the prediction of new inputs X_new by using the appropriate response function
+    on the latent functions to produce MAP predictions
+
+    Args:
+        X: Training inputs (m x d).
+        Y: Training target output (m x 1).
+        X_new: New inputs to be evaluated at
+        inference: Inference or approximation method used in computing the GPC values
+        likelihood: Likelihood function class used to model the posterior on latent functions p(y|f). Instantiate
+        l: Length scale parameter.
+        d: Kernel vertical variation parameter.
+        sigma_y: Noise parameter.
+    
+    Returns:
+        Posterior mean vector (n x d) and covariance matrix (n x n).
+
+"""
+def gaussian_process_classifier(X, y, X_new, inference='laplace', likelihood='probit', l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
+    likelihood_fn = likelihoods[likelihood]()
+    inference_mtd = inferences[inference]
+    kernel_fn = kernels[kernel]
+
+    mu, cov = inference_mtd(X_new, X, y, likelihood=likelihood_fn, kernel=kernel_fn, l=l, d=d)
+
+    # Generate new prediction probabilities by squashing using respective response function
+    # Uses the MAP evaluation E[s(f|y)] instead of the direct integral in equation 3.25
+    pred = likelihood_fn.response_function(mu)
+
+    return pred
