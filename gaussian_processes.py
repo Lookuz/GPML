@@ -112,4 +112,4 @@ def gaussian_process_classifier(X, y, X_new, inference='laplace', likelihood='pr
     # Uses the MAP evaluation E[s(f|y)] instead of the direct integral in equation 3.25
     pred = likelihood_fn.response_function(mu)
 
-    return pred
+    return pred, (mu, cov)

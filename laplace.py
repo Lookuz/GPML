@@ -1,6 +1,7 @@
 import numpy as np
 import likelihood_classes
 from util import dtrtrs
+from scipy.linalg import cho_solve 
 
 """
     Laplace Approximation inference for determining the classification probabilities on new inputs
@@ -33,6 +34,7 @@ def laplace_approximation_binary(X_new, X, y, likelihood, kernel, tol=1e-4, max_
 
     # Covariance matrix
     v = np.linalg.solve(L, W_12.dot(k_star))
+    # v = cho_solve((L, True), W_12.dot(k_star))
     k_star2 = kernel(X_new, X_new)
     cov = k_star2 - v.T.dot(v)
 
