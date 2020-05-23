@@ -5,26 +5,6 @@ from scipy.linalg import lapack
 _lim_val = np.finfo(np.float64).max
 _lim_val_square = np.sqrt(_lim_val)
 
-'''
-    Implements the Gaussian or squared exponential kernel
-    Used as covariance function k(x, x')
-    Parameters:
-        X1: Array of m points (m x d).
-        X2: Array of n points (n x d).
-        l: Length scale parameter
-        d: Signal variance
-
-    Returns:
-        Covariance matrix (m x n).
-    '''
-def rbf_kernel(X1, X2, d=1.0, l=1.0):
-    # (X1 - X2)^2 => X1^2 + X2^2 - 2 * X1X2
-    X1_norm = np.sum(X1**2, axis=1)
-    X2_norm = np.sum(X2**2, axis=1)
-    squared_norm = X1_norm.reshape(-1, 1) + X2_norm - 2 * np.dot(X1, X2.T)
-
-    return d**2 * np.exp(-(0.5/(l**2)) * squared_norm)
-
 def sigmoid(f):
     return 1  / (1 + np.exp(-f))
 

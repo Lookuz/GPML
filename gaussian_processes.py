@@ -1,12 +1,12 @@
 import numpy as np
 from numpy.linalg import inv
 from scipy.linalg import cholesky, cho_solve
-from util import rbf_kernel
+from kernels import rbf
 import likelihood_classes
 import laplace
 
 kernels = {
-    'rbf' : rbf_kernel
+    'rbf' : rbf
 }
 
 # Likelihood functions used in modelling p(f|y) in GPC
