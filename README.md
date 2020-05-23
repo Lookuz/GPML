@@ -10,3 +10,6 @@ This repository provides implementation for some of the algorithms and technique
 - Approximation
 
 For more detail, check the free GPML textbook: http://gaussianprocess.org/gpml/chapters/
+
+
+**Note**: The implementations in this repository may not in any way be optimized for production and deployment use. They are intended for learning and experimentation use.
