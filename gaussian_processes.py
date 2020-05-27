@@ -1,12 +1,17 @@
 import numpy as np
 from numpy.linalg import inv
 from scipy.linalg import cholesky, cho_solve
-from kernels import rbf
+from kernels import rbf, poly, matern, rational_quadratic, exp_sin_sq, nn
 import likelihood_classes
 import laplace
 
 kernels = {
-    'rbf' : rbf
+    'rbf' : rbf,
+    'poly' : poly,
+    'matern' : matern,
+    'rational_quadratic' : rational_quadratic,
+    'exp_sin_sq' : exp_sin_sq,
+    'nn' : nn
 }
 
 # Likelihood functions used in modelling p(f|y) in GPC
@@ -35,17 +40,39 @@ inferences = {
     Returns:
         Posterior mean vector (n x d) and covariance matrix (n x n).
 '''
-def gp_regression(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
+def gp_regression(X, y, X_new, sigma_y=1e-8, kernel='rbf', l=1.0, d=1.0, bias=1.0, order=2.0, nv=1.5, alpha=1.0, omega=1.0, b=1.0, sigma=None):
     k = kernels[kernel]
+    
+    if kernel == 'rbf':
+        K_y = k(X, X, d, l) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, d, l)
+        K_newnew = k(X_new, X_new, d, l)
+    elif kernel == 'poly':
+        K_y = k(X, X, bias, order) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, bias, order)
+        K_newnew = k(X_new, X_new, bias, order)
+    elif kernel == 'matern':
+        K_y = k(X, X, nv, l) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, nv, l)
+        K_newnew = k(X_new, X_new, nv, l)
+    elif kernel == 'rational_quadratic':
+        K_y = k(X, X, alpha, l) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, alpha, l)
+        K_newnew = k(X_new, X_new, alpha, l)
+    elif kernel == 'exp_sin_sq':
+        K_y = k(X, X, l) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, l)
+        K_newnew = k(X_new, X_new, l)
+    elif kernel == 'nn':
+        K_y = k(X, X, alpha, omega, b, sigma) + sigma_y**2 * np.eye(len(X))
+        K_ynew = k(X, X_new, alpha, omega, b, sigma)
+        K_newnew = k(X_new, X_new, alpha, omega, b, sigma)
 
     # Mean prediction vector
-    K_y = k(X, X, d, l) + sigma_y**2 * np.eye(len(X))
-    K_ynew = k(X, X_new, d, l)
     K_y_inv = inv(K_y)
     mu_new = (K_ynew.T).dot(K_y_inv).dot(y)
 
     # Covariance matrix
-    K_newnew = k(X_new, X_new, d, l)
     cov_new = K_newnew - (K_ynew.T).dot(K_y_inv).dot(K_ynew)
 
     return mu_new, cov_new
