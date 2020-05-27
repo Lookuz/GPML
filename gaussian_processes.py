@@ -81,8 +81,33 @@ def gp_regression(X, y, X_new, sigma_y=1e-8, kernel='rbf', l=1.0, d=1.0, bias=1.
     Faster version of gp_regression. Uses cholesky decomposition instead of direction inversion
     Requires that the inverting matrix is positive definite
 '''
-def gp_regression_fast(X, y, X_new, l=1.0, d=1.0, sigma_y=1e-8, kernel='rbf'):
+def gp_regression_fast(X, y, X_new, sigma_y=1e-8, kernel='rbf', l=1.0, d=1.0, bias=1.0, order=2.0, nv=1.5, alpha=1.0, omega=1.0, b=1.0, sigma=None):
     k = kernels[kernel]
+    
+    if kernel == 'rbf':
+        K = k(X, X, d, l) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, d, l)
+        k_star2 = k(X_new, X_new, d, l)
+    elif kernel == 'poly':
+        K = k(X, X, bias, order) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, bias, order)
+        k_star2 = k(X_new, X_new, bias, order)
+    elif kernel == 'matern':
+        K = k(X, X, nv, l) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, nv, l)
+        k_star2 = k(X_new, X_new, nv, l)
+    elif kernel == 'rational_quadratic':
+        K = k(X, X, alpha, l) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, alpha, l)
+        k_star2 = k(X_new, X_new, alpha, l)
+    elif kernel == 'exp_sin_sq':
+        K = k(X, X, l) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, l)
+        k_star2 = k(X_new, X_new, l)
+    elif kernel == 'nn':
+        K = k(X, X, alpha, omega, b, sigma) + sigma_y**2 * np.eye(len(X))
+        k_star = k(X, X_new, alpha, omega, b, sigma)
+        k_star2 = k(X_new, X_new, alpha, omega, b, sigma)
 
     # Mean prediction vector
     K = k(X, X, d, l) + sigma_y**2 * np.eye(len(X))
