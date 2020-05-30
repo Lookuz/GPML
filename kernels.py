@@ -2,6 +2,7 @@ import numpy as np
 import math
 from scipy.special import gamma, kv
 from scipy.spatial.distance import cdist
+from sklearn.metrics.pairwise import polynomial_kernel
 
 '''
     Class that implements kernel functions to be used as covariance function k(x, x')
@@ -26,17 +27,22 @@ def rbf(X1, X2, d=1.0, l=1.0):
 
 # Polynomial kernel given by (bias + <X1, X2>)
 def poly(X1, X2, bias=1., order=2.):
+    gamma = 1.0 / X1.shape[1]
+
     X1X2 = X1.dot(X2.T)
+    X1X2 *= gamma
+    
     result = X1X2 + bias
     result = result ** order
-
+    
     return result
 
 # Rational Quadratic kernel
 # Generalisation over the squared exponential kernel
-def rational_quadratic(X1, X2, alpha=1.0, l=1.0):
+def rational_quadratic(X1, X2, alpha=1.0, l=1.0, sigma=1e-09):
 
     sq_norm = cdist(X1, X2, metric='sqeuclidean')
+    sq_norm += sigma
 
     K = (1 + (sq_norm / (2. * alpha * (l**2))))**alpha
     return K
@@ -45,11 +51,12 @@ def rational_quadratic(X1, X2, alpha=1.0, l=1.0):
 # Special cases for nv = 0.5, 1.5, 2.5
 # For other values that not as above, the general Matern kernel formula will be used
 # which can be very expensive
-def matern(X1, X2, nv=1.5, l=1.0):
+def matern(X1, X2, nv=1.5, l=1.0, sigma=1e-09):
     X1 = X1 / l
     X2 = X2 / l
 
-    norm = cdist(X1, X2, metric='euclidean')
+    norm_sq = cdist(X1, X2, metric='sqeuclidean')
+    norm = np.sqrt(norm_sq + sigma) # Handle small distances
 
     if nv == 0.5:
         K = np.exp(-norm)
@@ -80,11 +87,12 @@ def exp_sin_sq(X1, X2, l=1.0):
 # weight parameters
 def nn(X1, X2, alpha=1.0, omega=1.0, b=1.0, sigma=None):
     if sigma == None:
-        sigma = np.eye(len(X1[0]))
+        sigma = np.eye(X1.shape[1])
 
-    X1X2 = 2 * X1.T.dot(sigma).dot(X2)
-    X1_2 = 2.*X1.T.dot(sigma).dot(X1) + 1.
-    X2_2 = 2.*X2.T.dot(sigma).dot(X2) + 1. 
-    K = np.arcsin(X1X2 / np.sqrt(X1_2 * X2_2))
+    X1X2 = 2. * X1.dot(sigma).dot(X2.T) + b
+    X1_2 = np.sqrt(np.diag(2*X1.dot(sigma).dot(X1.T) + b + 1.))
+    X2_2 = np.sqrt(np.diag(2*X2.dot(sigma).dot(X2.T) + b + 1.))
+    inner = X1X2 / X1_2[:, None] / X2_2[None, :]
+    K = (2. / np.pi) * np.arcsin(inner)
 
     return K
