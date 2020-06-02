@@ -8,6 +8,7 @@ This repository provides implementation for some of the algorithms and technique
 - Model Selection
 - Adapting Hyperparameters
 - Approximation
+- **Bayesian Optimization**(Not in GPML)
 
 The bolded entries above indicates that a notebook is present for that topic.
 
