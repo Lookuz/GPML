@@ -19,11 +19,11 @@ from scipy.optimize import minimize
     Returns:
         Expected improvement values of new inputs X
 """
-def expected_improvement(X_new, X, y, xi=0.01):
-    mu_new, cov_new, _ = gp_regression_fast(X, y, X_new)
+def expected_improvement(X_new, X, y, xi=0.01, sigma_y=1e-8, kernel='rbf'):
+    mu_new, cov_new, _ = gp_regression_fast(X, y, X_new, kernel=kernel, sigma_y=sigma_y)
     f_max = np.max(y) # Take max of current observations so far
 
-    sigma_new = np.diag(cov_new)
+    sigma_new = np.sqrt(np.diag(cov_new)).reshape(-1, 1)
 
     # Expected improve over GP prior on functions
     with np.errstate(divide='warn'):
@@ -47,14 +47,14 @@ def expected_improvement(X_new, X, y, xi=0.01):
         xi: Noise label; Influences exploration(See Expected Improvement)
         n_restarts: Number of restarts to perform during local minimisation
 """
-def maximise_acquisition(acquistion, bounds, X, y, xi=0.01, n_restarts=25):
+def maximise_acquisition(acquistion, bounds, X, y, xi=0.01, sigma_y=1e-8, kernel='rbf', n_restarts=25):
     input_dim = X.shape[1]
     min_improvement = 1.
     x_best = None
 
     # Maximising acquisition equivalent to minimising the negative of the acquisition
     def objective(X_new):
-        return -acquistion(X_new.reshape(-1, input_dim), X, y, xi=xi)
+        return -acquistion(X_new.reshape(-1, input_dim), X, y, xi=xi, sigma_y=sigma_y, kernel=kernel)
 
     for x in np.random.uniform(bounds[:, 0], bounds[:, 1], size=(n_restarts, input_dim)):
         res = minimize(objective, x0=x, bounds=bounds, method='L-BFGS-B')
